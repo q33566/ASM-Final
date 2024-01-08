@@ -479,7 +479,6 @@ endGameMenu MACRO
 ENDM
 
 
-main PROC
 readKeyboard MACRO
 INVOKE ReadKey
 	.IF al == '1'
@@ -582,6 +581,7 @@ INVOKE ReadKey
 		.ENDIF
 	.ENDIF
 ENDM
+main PROC
 menu:
 	menuPage
 

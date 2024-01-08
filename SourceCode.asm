@@ -588,11 +588,7 @@ menu:
 startPrepare:
 	initialize
 startGame: 
-;--------------------------每?秒更新一次地鼠start-----------------------------------
 	updateRatArray
-;--------------------------每?秒更新一次地鼠end--------------------------------------
-
-;--------------------------畫面更新start-------------------------------------------
 	INVOKE GetTickCount
 	sub eax, baseTime  ;將距離上一次更新畫面的時間存入eax
 	mov lastUpdateDrawTime, eax       ;將距離上一次更新畫面的時間存入edx
@@ -604,7 +600,6 @@ startGame:
 		handleGameInformation
 endGame:
 	endGameMenu	
-;----------------------------------------------------------------畫面更新end---------------------------------------------------------
 notEnd:
 	readKeyboard
 	jmp startGame

@@ -1,0 +1,4 @@
+﻿  Assembling Source.asm...
+Source.asm(248): warning A6004: procedure argument or local not referenced : attributes1
+Source.asm(248): warning A6004: procedure argument or local not referenced : attributes2
+  ProjectLab.vcxproj -> C:\Users\user\source\repos\ProjectLab\Debug\ProjectLab.exe

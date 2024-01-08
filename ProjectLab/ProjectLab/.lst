@@ -1,0 +1,1171 @@
+Microsoft (R) Macro Assembler Version 14.29.30152.0	    01/07/24 18:59:14
+Source.asm						     Page 1 - 1
+
+
+				INCLUDE Irvine32.inc
+			      C ; Include file for Irvine32.lib             (Irvine32.inc)
+			      C 
+			      C ;OPTION CASEMAP:NONE		; optional: make identifiers case-sensitive
+			      C 
+			      C INCLUDE SmallWin.inc		; MS-Windows prototypes, structures, and constants
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C INCLUDE VirtualKeys.inc
+			      C ; VirtualKeys.inc
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 
+				
+ = 00000014			BoxWidth = 20
+ = 00000007			BoxHeight = 7
+ = 00000003			mouseWidth = 3
+ = 00000004			mouseHeight = 4
+				
+ 00000000			.data
+ 00000000 BE FA A5 76 B3	highestScoreString BYTE "歷史最高分數: ",0
+	   CC B0 AA A4 C0
+	   BC C6 3A 20 00
+ 0000000F 00000000		highestScore DWORD 0
+ 00000013 73 63 6F 72 65	fileName BYTE "score.txt",0
+	   2E 74 78 74 00
+ 0000001D 00000000		fileHandle HANDLE ?
+ 00000021 00000005		redPopProbability DWORD 5
+				;------------------------------menu start-------------------------------
+ 00000025 2A 2A 2A A5 B4	menuTitle BYTE "***打地鼠***",0
+	   A6 61 B9 AB 2A
+	   2A 2A 00
+ 00000032 AB F6 31 7E 39	menuTurtorialTitle BYTE "按1~9打對應格子的地鼠",0dh,0ah,0;
+	   A5 B4 B9 EF C0
+	   B3 AE E6 A4 6C
+	   AA BA A6 61 B9
+	   AB 0D 0A 00
+ 0000004A 2D 2D 2D 2D 2D	menuTutorialGraph BYTE "-------------------",0dh,0ah,
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 0D
+	   0A 7C 20 20 37
+	   20 20 7C 20 20
+	   38 20 20 7C 20
+	   20 39 20 20 7C
+	   0D 0A 7C 20 20
+	   34 20 20 7C 20
+	   20 35 20 20 7C
+	   20 20 36 20 20
+	   7C 0D 0A 7C 20
+	   20 31 20 20 7C
+	   20 20 32 20 20
+	   7C 20 20 33 20
+	   20 7C 0D 0A 2D
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 0D 0A
+	   00
+									   "|  7  |  8  |  9  |",0dh,0ah,
+									   "|  4  |  5  |  6  |",0dh,0ah,
+									   "|  1  |  2  |  3  |",0dh,0ah,
+									   "-------------------",0dh,0ah,0
+ 000000B4 AB F6 57 B6 7D	menuStartMessage BYTE "按W開始",0
+	   A9 6C 00
+				
+				
+				;------------------------------menu end---------------------------------
+				;------------------------------endPage start----------------------------
+ 000000BC A7 41 AA BA A4	endTitle BYTE "你的分數: ", 0
+	   C0 BC C6 3A 20
+	   00
+ 000000C7 AB F6 57 AD AB	endRestart BYTE "按W重新開始，按其他按鍵離開", 0
+	   B7 73 B6 7D A9
+	   6C A1 41 AB F6
+	   A8 E4 A5 4C AB
+	   F6 C1 E4 C2 F7
+	   B6 7D 00
+				;------------------------------endPage end------------------------------
+ 000000E3 00000000		totalTime DWORD ?
+ 000000E7 000003E8		divisor DWORD 1000
+ 000000EB 00000000		gameStartTime DWORD ?
+ 000000EF 20 20 20 20 20	timeString BYTE "     time: ",0
+	   74 69 6D 65 3A
+	   20 00
+ 000000FB 00000000		score DWORD 0
+ 000000FF 73 63 6F 72 65	scoreString BYTE "score: ",0
+	   3A 20 00
+ 00000107 00000000		lastUpdatePopTime DWORD ?
+ 0000010B 00000000		popBaseTime DWORD ?
+ 0000010F 00000000		lastUpdateDrawTime DWORD ?
+ 00000113 00 00 00 00 00	popUp byte 0,0,0,0,0,0,0,0,0
+	   00 00 00 00
+ 0000011C 00 00 00 00 00	redPopUp byte 0,0,0,0,0,0,0,0,0
+	   00 00 00 00
+				;-----------
+				;-----------for-loop----------------------------------------------
+ 00000125 00			counter byte 0						;給loop用的counter
+				;-----------draw-mouse-begin--------------------------------------
+ 00000126 2A 2A 2A		mousePicture BYTE "***"				;地鼠的1/3
+				;-----------draw-mouse-end----------------------------------------
+				;-----------key---------------------------------------------------
+ 00000129 00			keyBuffer BYTE ?				
+				;-----------draw-background-begin---------------------------------
+ 0000012A 00000000		baseTime DWORD ?						;遊戲一開始就記住系統時間
+ 0000012E 00000000		currentTime DWORD 0
+ 00000132  00000014 [		boxTop    BYTE BoxWidth DUP('*')
+	    2A
+	   ]
+ 00000146 2A			boxBody   BYTE '*',(BoxWidth - 2)DUP(' '),'*'
+	   00000012 [
+	    20
+	   ] 2A
+ 0000015A  00000014 [		boxBottom BYTE BoxWidth DUP('*')
+	    2A
+	   ]
+ 0000016E 21			fps BYTE 33
+ 0000016F 00000000		outputHandle DWORD 0
+ 00000173 00000000		bytesWritten DWORD 0
+ 00000177 00000000		count DWORD 0
+ 0000017B 001C 0009 0030	mousePosition COORD <BoxWidth+8,BoxHeight+2>, <BoxWidth+28,BoxHeight+2>, <BoxWidth+48,BoxHeight+2>, <BoxWidth+8,BoxHeight+9>, <BoxWidth+28,BoxHeight+9>, <BoxWidth+48,BoxHeight+9>, <BoxWidth+8,BoxHeight+16>, <BoxWidth+28,BoxHeight+16>, <BoxWidth+48,BoxHeight+16>
+	   0009 0044 0009
+	   001C 0010 0030
+	   0010 0044 0010
+	   001C 0017 0030
+	   0017 0044 0017
+ 0000019F 0014 0007 0028	position COORD <BoxWidth,BoxHeight>,<BoxWidth*2,BoxHeight>,<BoxWidth*3,BoxHeight>,<BoxWidth*1,BoxHeight*2>,<BoxWidth*2,BoxHeight*2>,<BoxWidth*3,BoxHeight*2>,<BoxWidth*1,BoxHeight*3>,<BoxWidth*2,BoxHeight*3>,<BoxWidth*3,BoxHeight*3>
+	   0007 003C 0007
+	   0014 000E 0028
+	   000E 003C 000E
+	   0014 0015 0028
+	   0015 003C 0015
+				;-----------draw-background-end-----------------------------------
+ 000001C3 00000000		cellsWritten DWORD ?
+ 000001C7  00000014 [		attributesNotHit0 WORD BoxWidth DUP(0Ah)
+	    000A
+	   ]
+ 000001EF 000A			attributesNotHit1 WORD 0Ah, (BoxWidth-2) DUP(0), 0Ah
+	   00000012 [
+	    0000
+	   ] 000A
+ 00000217  00000014 [		attributesNotHit2 WORD BoxWidth DUP(0Ah)
+	    000A
+	   ]
+ 0000023F  00000014 [		attributesHit0 WORD BoxWidth DUP(0Ch)
+	    000C
+	   ]
+ 00000267 000C			attributesHit1 WORD 0Ch, (BoxWidth-2) DUP(0), 0Ch
+	   00000012 [
+	    0000
+	   ] 000C
+ 0000028F  00000014 [		attributesHit2 WORD BoxWidth DUP(0Ch)
+	    000C
+	   ]
+ 00000000			.code 
+ 00000000			setRedPop PROC USES eax edx ebx
+ 00000003  E8 00000000 E		call Randomize
+ 00000008  A1 00000021 R		mov eax, redPopProbability
+					INVOKE RandomRange
+					.IF eax ==  0 && popUp[0] == 0
+ 0000001F  C6 05 0000011C R			mov redPopUp[0], 1                 ;if eax is 0, the red rat at redPopUp[i] shows up.
+	   01
+					.ELSE
+ 00000028  C6 05 0000011C R			mov redPopUp[0],0                  ;if eax is 1, the rat rat at redDopUp[i] hides. 
+	   00
+					.ENDIF
+				
+ 0000002F  A1 00000021 R		mov eax, redPopProbability
+					INVOKE RandomRange
+					.IF eax ==  0 && popUp[1] == 0
+ 00000046  C6 05 0000011D R			mov redPopUp[1], 1                 ;if eax is 0, the red rat at redPopUp[i] shows up.
+	   01
+					.ELSE
+ 0000004F  C6 05 0000011D R			mov redPopUp[1],0                  ;if eax is 1, the rat rat at redDopUp[i] hides. 
+	   00
+					.ENDIF
+				
+ 00000056  A1 00000021 R		mov eax, redPopProbability
+					INVOKE RandomRange
+					.IF eax ==  0 && popUp[2] == 0
+ 0000006D  C6 05 0000011E R			mov redPopUp[2], 1                 ;if eax is 0, the red rat at redPopUp[i] shows up.
+	   01
+					.ELSE
+ 00000076  C6 05 0000011E R			mov redPopUp[2],0                  ;if eax is 1, the rat rat at redDopUp[i] hides. 
+	   00
+					.ENDIF
+				
+ 0000007D  A1 00000021 R		mov eax, redPopProbability
+					INVOKE RandomRange
+					.IF eax ==  0 && popUp[3] == 0
+ 00000094  C6 05 0000011F R			mov redPopUp[3], 1                 ;if eax is 0, the red rat at redPopUp[i] shows up.
+	   01
+					.ELSE
+ 0000009D  C6 05 0000011F R			mov redPopUp[3],0                  ;if eax is 1, the rat rat at redDopUp[i] hides. 
+	   00
+					.ENDIF
+				
+ 000000A4  A1 00000021 R		mov eax, redPopProbability
+					INVOKE RandomRange
+					.IF eax ==  0 && popUp[4] == 0
+ 000000BB  C6 05 00000120 R			mov redPopUp[4], 1                 ;if eax is 0, the red rat at redPopUp[i] shows up.
+	   01
+					.ELSE                  
+ 000000C4  C6 05 00000120 R			mov redPopUp[4],0                  ;if eax is 1, the rat rat at redDopUp[i] hides. 
+	   00
+					.ENDIF                        
+				
+ 000000CB  A1 00000021 R		mov eax, redPopProbability
+					INVOKE RandomRange
+					.IF eax ==  0 && popUp[5] == 0
+ 000000E2  C6 05 00000121 R			mov redPopUp[5], 1                 ;if eax is 0, the red rat at redPopUp[i] shows up.
+	   01
+					.ELSE
+ 000000EB  C6 05 00000121 R			mov redPopUp[5],0                  ;if eax is 1, the rat rat at redDopUp[i] hides. 
+	   00
+					.ENDIF
+				
+ 000000F2  A1 00000021 R		mov eax, redPopProbability
+					INVOKE RandomRange
+					.IF eax ==  0 && popUp[6] == 0
+ 00000109  C6 05 00000122 R			mov redPopUp[6], 1                 ;if eax is 0, the red rat at redPopUp[i] shows up.
+	   01
+					.ELSE
+ 00000112  C6 05 00000122 R			mov redPopUp[6],0                  ;if eax is 1, the rat rat at redDopUp[i] hides. 
+	   00
+					.ENDIF
+				
+ 00000119  A1 00000021 R		mov eax, redPopProbability
+					INVOKE RandomRange
+					.IF eax ==  0 && popUp[7] == 0
+ 00000130  C6 05 00000123 R			mov redPopUp[7], 1                 ;if eax is 0, the red rat at redPopUp[i] shows up.
+	   01
+					.ELSE
+ 00000139  C6 05 00000123 R			mov redPopUp[7],0                  ;if eax is 1, the rat rat at redDopUp[i] hides. 
+	   00
+					.ENDIF
+				
+ 00000140  A1 00000021 R		mov eax, redPopProbability
+					INVOKE RandomRange
+					.IF eax ==  0 && popUp[8] == 0
+ 00000157  C6 05 00000124 R			mov redPopUp[8], 1                 ;if eax is 0, the red rat at redPopUp[i] shows up.
+	   01
+					.ELSE
+ 00000160  C6 05 00000124 R			mov redPopUp[8],0                  ;if eax is 1, the rat rat at redDopUp[i] hides. 
+	   00
+					.ENDIF
+					ret
+ 0000016B			setRedPop ENDP
+ 0000016B			setPop PROC USES eax edx ebx			;讓地鼠陣列隨機出現0 or 1   
+ 0000016E  E8 00000000 E		call Randomize  
+ 00000173  B8 00000002			mov eax, 2							;set the range of random number [0,2)
+					INVOKE RandomRange                  ;store a randon number in eax
+					.IF eax ==  0
+ 00000181  C6 05 00000113 R			mov popUp[0], 1                 ;if eax is 0, the rat at popUp[i] shows up.
+	   01
+					.ELSE
+ 0000018A  C6 05 00000113 R			mov popUp[0],0                  ;if eax is 1, the rat at popUp[i] hides. 
+	   00
+					.ENDIF
+				
+ 00000191  B8 00000002			mov eax, 2				
+					INVOKE RandomRange
+					.IF eax ==  0
+ 0000019F  C6 05 00000114 R			mov popUp[1], 1
+	   01
+					.ELSE
+ 000001A8  C6 05 00000114 R			mov popUp[1],0
+	   00
+					.ENDIF
+				
+ 000001AF  B8 00000002			mov eax, 2				
+					INVOKE RandomRange
+					.IF eax ==  0
+ 000001BD  C6 05 00000115 R			mov popUp[2], 1
+	   01
+					.ELSE
+ 000001C6  C6 05 00000115 R			mov popUp[2],0
+	   00
+					.ENDIF
+				
+ 000001CD  B8 00000002			mov eax, 2				
+					INVOKE RandomRange
+					.IF eax ==  0
+ 000001DB  C6 05 00000116 R			mov popUp[3], 1
+	   01
+					.ELSE
+ 000001E4  C6 05 00000116 R			mov popUp[3],0
+	   00
+					.ENDIF
+				
+ 000001EB  B8 00000002			mov eax, 2				
+					INVOKE RandomRange
+					.IF eax ==  0
+ 000001F9  C6 05 00000117 R			mov popUp[4], 1
+	   01
+					.ELSE
+ 00000202  C6 05 00000117 R			mov popUp[4],0
+	   00
+					.ENDIF
+				
+ 00000209  B8 00000002			mov eax, 2				
+					INVOKE RandomRange
+					.IF eax ==  0
+ 00000217  C6 05 00000118 R			mov popUp[5], 1
+	   01
+					.ELSE
+ 00000220  C6 05 00000118 R			mov popUp[5],0
+	   00
+					.ENDIF
+				
+ 00000227  B8 00000002			mov eax, 2				
+					INVOKE RandomRange
+					.IF eax ==  0
+ 00000235  C6 05 00000119 R			mov popUp[6], 1
+	   01
+					.ELSE
+ 0000023E  C6 05 00000119 R			mov popUp[6],0
+	   00
+					.ENDIF
+				
+ 00000245  B8 00000002			mov eax, 2				
+					INVOKE RandomRange
+					.IF eax ==  0
+ 00000253  C6 05 0000011A R			mov popUp[7], 1
+	   01
+					.ELSE
+ 0000025C  C6 05 0000011A R			mov popUp[7],0
+	   00
+					.ENDIF
+				
+ 00000263  B8 00000002			mov eax, 2				;set the range of random number [0,2)
+					INVOKE RandomRange		;store a randon number in eax
+					.IF eax ==  0
+ 00000271  C6 05 0000011B R			mov popUp[8], 1	    ;if eax is 0, the rat at popUp[i] shows up.
+	   01
+					.ELSE
+ 0000027A  C6 05 0000011B R			mov popUp[8],0		;if eax is 1, the rat at popUp[i] hides. 
+	   00
+					.ENDIF
+					;mov popUp[0],0
+					ret
+ 00000285			setPop ENDP
+				
+ 00000285			drawMouse PROC USES eax ecx edx,
+				    xyPosition:COORD,
+				    attributes0:PTR WORD,
+				    attributes1:PTR WORD,
+				    attributes2:PTR WORD
+ 0000028B  C6 05 00000125 R		mov counter, 3
+	   03
+				
+ 00000292  FF 75 08			push xyPosition
+ 00000295			L1:  INVOKE WriteConsoleOutputAttribute,
+				      outputHandle, 
+				      attributes0,
+				      mouseWidth, 
+				      xyPosition,
+				      addr bytesWritten
+				    INVOKE WriteConsoleOutputCharacter,
+				       outputHandle,    ; console output handle
+				       addr mousePicture,    ; pointer to the mouse
+				       mouseWidth,    ; size of box line
+				       xyPosition,    ; coordinates of first char
+				       addr count     ; output count
+ 000002C7  66| FF 45 0A			inc xyPosition.Y
+ 000002CB  FE 0D 00000125 R		dec counter
+ 000002D1  80 3D 00000125 R		cmp counter, 0
+	   00
+ 000002D8  75 BB			jne L1
+ 000002DA  8F 45 08			pop xyPosition
+					   ret
+ 000002E4			drawMouse ENDP
+Source.asm(248) : warning A6004:procedure argument or local not referenced : attributes1
+Source.asm(248) : warning A6004:procedure argument or local not referenced : attributes2
+				
+ 000002E4			drawBackGround PROC USES eax ecx,
+					xyPosition:COORD,
+					attributes0:PTR WORD,
+					attributes1:PTR WORD,
+					attributes2:PTR WORD
+					invoke getStdHandle, STD_OUTPUT_HANDLE
+ 000002F0  A3 0000016F R		mov outputHandle, eax	; save console handle
+					;call Clrscr
+					; draw top of the box
+					INVOKE WriteConsoleOutputAttribute,
+					  outputHandle, 
+					  attributes0,
+					  BoxWidth, 
+					  xyPosition,
+					  addr bytesWritten
+					INVOKE WriteConsoleOutputCharacter,
+					   outputHandle,	; console output handle
+					   addr boxTop,	    ; pointer to the top box line
+					   BoxWidth,	    ; size of box line
+					   xyPosition,	    ; coordinates of first char
+					   addr count	    ; output count	
+ 00000327  66| FF 45 0A			inc xyPosition.y	; next line
+					; draw body of the box
+ 0000032B  B9 00000005			mov ecx, BoxHeight-2	; number of lines in body
+ 00000330  51			L1:	push ecx	; save counter
+				
+					INVOKE WriteConsoleOutputAttribute,
+					  outputHandle, 
+					  attributes1,
+					  BoxWidth, 
+					  xyPosition,
+					  addr bytesWritten
+				
+					INVOKE WriteConsoleOutputCharacter,
+					   outputHandle,	; console output handle
+					   addr boxBody,	; pointer to the box body
+					   BoxWidth,	; size of box line
+					   xyPosition,	; coordinates of first char
+					   addr count	; output count
+ 00000363  66| FF 45 0A			inc xyPosition.y	; next line
+ 00000367  59				pop ecx	; restore counter
+ 00000368  E2 C6			loop L1
+					; draw bottom of the box
+					INVOKE WriteConsoleOutputAttribute,
+					  outputHandle, 
+					  attributes2,
+					  BoxWidth, 
+					  xyPosition,
+					  addr bytesWritten
+					  	
+					INVOKE WriteConsoleOutputCharacter,
+					   outputHandle,	; console output handle
+					   addr boxBottom,	; pointer to the bottom of the box
+					   BoxWidth,	; size of box line
+					   xyPosition,	; coordinates of first char
+					   addr count	; output count
+					   ;call WaitMsg
+					   ;call Clrscr
+					   ret
+ 000003A2			drawBackGround ENDP
+				
+				menuPage MACRO 
+						call Clrscr		mov edx, OFFSET menuTitle 		INVOKE WriteString		mov edx, OFFSET menuTurtorialTitle 		INVOKE Crlf		INVOKE WriteString		mov edx, OFFSET menuTutorialGraph		INVOKE WriteString		INVOKE Crlf		mov edx, OFFSET menuStartMessage		INVOKE WriteString		INVOKE Crlf		INVOKE ReadChar		.IF al == 'w' || al == 'W'			jmp startPrepare
+						.ELSE			jmp EX
+						.ENDIFENDM
+				
+				initialize MACRO
+				INVOKE GetTickCount	mov baseTime, eax	mov popBaseTime, eax	mov gameStartTime, eax ;紀錄遊戲開始時間	mov totalTime, 20	mov score, 0	mov popUp[0],0	mov popUp[1],0	mov popUp[2],0	mov popUp[3],0	mov popUp[4],0	mov popUp[5],0	mov popUp[6],0	mov popUp[7],0	mov popUp[8],0	mov redPopUp[0],0	mov redPopUp[1],0	mov redPopUp[2],0	mov redPopUp[3],0	mov redPopUp[4],0	mov redPopUp[5],0	mov redPopUp[6],0	mov redPopUp[7],0	mov redPopUp[8],0ENDM
+				
+				updateRatArray MACRO
+					INVOKE GetTickCount	sub eax, popBaseTime  ;將距離上一次更新畫面的時間存入eax	mov lastUpdatePopTime, eax       ;將距離上一次更新畫面的時間存入edx		.IF lastUpdatePopTime>2000		INVOKE setPop		INVOKE setRedPop		INVOKE GetTickCount		mov popBaseTime, eax	.ENDIFENDM
+				
+				updateDrawBackground MACRO
+						INVOKE drawBackGround, position[sizeof coord*0], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		INVOKE drawBackGround, position[sizeof coord*1], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		INVOKE drawBackGround, position[sizeof coord*2], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		INVOKE drawBackGround, position[sizeof coord*3], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		INVOKE drawBackGround, position[sizeof coord*4], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		INVOKE drawBackGround, position[sizeof coord*5], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		INVOKE drawBackGround, position[sizeof coord*6], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		INVOKE drawBackGround, position[sizeof coord*7], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		INVOKE drawBackGround, position[sizeof coord*8], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2ENDM
+				
+				updateDrawRat MACRO
+					.IF popUp[0] == 1			INVOKE drawMouse, mousePosition[sizeof coord*0], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		.ENDIF		.IF popUp[1] == 1			INVOKE drawMouse, mousePosition[sizeof coord*1], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		.ENDIF		.IF popUp[2] == 1			INVOKE drawMouse, mousePosition[sizeof coord*2], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		.ENDIF		.IF popUp[3] == 1			INVOKE drawMouse, mousePosition[sizeof coord*3], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		.ENDIF		.IF popUp[4] == 1			INVOKE drawMouse, mousePosition[sizeof coord*4], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		.ENDIF		.IF popUp[5] == 1			INVOKE drawMouse, mousePosition[sizeof coord*5], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		.ENDIF		.IF popUp[6] == 1			INVOKE drawMouse, mousePosition[sizeof coord*6], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		.ENDIF		.IF popUp[7] == 1			INVOKE drawMouse, mousePosition[sizeof coord*7], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		.ENDIF		.IF popUp[8] == 1			INVOKE drawMouse, mousePosition[sizeof coord*8], addr attributesNotHit0, addr attributesNotHit1, addr attributesNotHit2		.ENDIFENDM
+				
+				updateDrawRedRat MACRO
+				.IF redPopUp[0] == 1			INVOKE drawMouse, mousePosition[sizeof coord*0], addr attributesHit0, addr attributesHit1, addr attributesHit2		.ENDIF		.IF redPopUp[1] == 1			INVOKE drawMouse, mousePosition[sizeof coord*1], addr attributesHit0, addr attributesHit1, addr attributesHit2		.ENDIF		.IF redPopUp[2] == 1			INVOKE drawMouse, mousePosition[sizeof coord*2], addr attributesHit0, addr attributesHit1, addr attributesHit2		.ENDIF		.IF redPopUp[3] == 1			INVOKE drawMouse, mousePosition[sizeof coord*3], addr attributesHit0, addr attributesHit1, addr attributesHit2		.ENDIF		.IF redPopUp[4] == 1			INVOKE drawMouse, mousePosition[sizeof coord*4], addr attributesHit0, addr attributesHit1, addr attributesHit2		.ENDIF		.IF redPopUp[5] == 1			INVOKE drawMouse, mousePosition[sizeof coord*5], addr attributesHit0, addr attributesHit1, addr attributesHit2		.ENDIF		.IF redPopUp[6] == 1			INVOKE drawMouse, mousePosition[sizeof coord*6], addr attributesHit0, addr attributesHit1, addr attributesHit2		.ENDIF		.IF redPopUp[7] == 1			INVOKE drawMouse, mousePosition[sizeof coord*7], addr attributesHit0, addr attributesHit1, addr attributesHit2		.ENDIF		.IF redPopUp[8] == 1			INVOKE drawMouse, mousePosition[sizeof coord*8], addr attributesHit0, addr attributesNotHit1, addr attributesNotHit2		.ENDIFENDM
+				
+				handleGameInformation MACRO
+						mov edx, OFFSET scoreString 		INVOKE WriteString			;在畫面賞顯示"score: "		mov eax, score		INVOKE WriteDec				;在畫面上顯示目前分數		mov edx, OFFSET timeString  		INVOKE WriteString          ;在畫面上顯示"  time: "				INVOKE GetTickCount		sub eax, gameStartTime		mov edx,0		div divisor		sub totalTime, eax		.IF totalTime <= 0			jmp endGame
+						.ENDIF		mov eax, totalTime		mov totalTime, 20		INVOKE WriteDec				INVOKE GetTickCount         		mov baseTime, eax		jmp notEnd
+				ENDM
+				
+				endGameMenu MACRO
+					call Clrscr		mov edx, OFFSET endTitle 		INVOKE WriteString		mov eax, score		INVOKE WriteDec		INVOKE Crlf		mov edx, OFFSET endRestart		INVOKE WriteString		INVOKE Crlf		;mov edx, OFFSET highestScoreString 		;INVOKE WriteString		;mov eax, highestScore		;INVOKE WriteDec		;INVOKE Crlf		INVOKE ReadChar		.IF al == 'w' || al == 'W'			INVOKE GetTickCount			jmp startPrepare
+						.ELSE			jmp EX
+						.ENDIF	.ENDIFENDM
+				
+				
+				main PROC
+				readKeyboard MACRO
+				INVOKE ReadKey	.IF al == '1'		.IF popUp[6] == 1			mov popUp[6], 0			inc score		.ELSEIF redPopUp[6] == 1			mov redPopUp[6], 0			.IF score > 0				dec score			.ENDIF		.ENDIF	.ENDIF	.IF al == '2'		.IF popUp[7] == 1			mov popUp[7], 0			inc score		.ELSEIF redPopUp[7] == 1			mov redPopUp[7], 0			.IF score > 0				dec score			.ENDIF		.ENDIF	.ENDIF	.IF al == '3'		.IF popUp[8] == 1			mov popUp[8], 0			inc score		.ELSEIF redPopUp[8] == 1			mov redPopUp[8], 0			.IF score > 0				dec score			.ENDIF		.ENDIF	.ENDIF	.IF al == '4'		.IF popUp[3] == 1			mov popUp[3], 0			inc score		.ELSEIF redPopUp[3] == 1			mov redPopUp[3], 0			.IF score > 0				dec score			.ENDIF		.ENDIF	.ENDIF	.IF al == '5'		.IF popUp[4] == 1			mov popUp[4], 0			inc score		.ELSEIF redPopUp[4] == 1			mov redPopUp[4], 0			.IF score > 0				dec score			.ENDIF		.ENDIF	.ENDIF	.IF al == '6'		.IF popUp[5] == 1			mov popUp[5], 0			inc score		.ELSEIF redPopUp[5] == 1			mov redPopUp[5], 0			.IF score > 0				dec score			.ENDIF		.ENDIF	.ENDIF	.IF al == '7'		.IF popUp[0] == 1			mov popUp[0], 0			inc score		.ELSEIF redPopUp[0] == 1			mov redPopUp[0], 0			.IF score > 0				dec score			.ENDIF		.ENDIF	.ENDIF	.IF al == '8'		.IF popUp[1] == 1			mov popUp[1], 0			inc score		.ELSEIF redPopUp[1] == 1			mov redPopUp[1], 0			.IF score > 0				dec score			.ENDIF		.ENDIF	.ENDIF	.IF al == '9'		.IF popUp[2] == 1			mov popUp[2], 0			inc score		.ELSEIF redPopUp[2] == 1			mov redPopUp[2], 0			.IF score > 0				dec score			.ENDIF		.ENDIF	.ENDIFENDM
+				menu:
+					menuPage
+				
+				startPrepare:
+					initialize
+				startGame: 
+				;--------------------------每?秒更新一次地鼠start-----------------------------------
+					updateRatArray
+				;--------------------------每?秒更新一次地鼠end--------------------------------------
+				
+				;--------------------------畫面更新start-------------------------------------------
+					INVOKE GetTickCount
+					sub eax, baseTime  ;將距離上一次更新畫面的時間存入eax
+					mov lastUpdateDrawTime, eax       ;將距離上一次更新畫面的時間存入edx
+					.IF lastUpdateDrawTime>33
+						call Clrscr
+						updateDrawBackground
+						updateDrawRat
+						updateDrawRedRat
+						handleGameInformation
+				endGame:
+					endGameMenu	
+				;----------------------------------------------------------------畫面更新end---------------------------------------------------------
+				notEnd:
+					readKeyboard
+					jmp startGame
+				EX:
+					exit
+				main ENDP
+				END main
+ 000003A2
+ 000003A2
+ 000003A2  E8 00000000 E     1			call Clrscr
+ 000003A7  BA 00000025 R     1			mov edx, OFFSET menuTitle 
+ 000003B1  BA 00000032 R     1			mov edx, OFFSET menuTurtorialTitle 
+ 000003C0  BA 0000004A R     1			mov edx, OFFSET menuTutorialGraph
+ 000003CF  BA 000000B4 R     1			mov edx, OFFSET menuStartMessage
+ 000003EB  EB 07	     1				jmp startPrepare
+ 000003EF  E9 00000725	     1				jmp EX
+ 000003F4
+ 000003F9  A3 0000012A R     1		mov baseTime, eax
+ 000003FE  A3 0000010B R     1		mov popBaseTime, eax
+ 00000403  A3 000000EB R     1		mov gameStartTime, eax ;紀錄遊戲開始時間
+ 00000408  C7 05 000000E3 R  1		mov totalTime, 20
+	   00000014
+ 00000412  C7 05 000000FB R  1		mov score, 0
+	   00000000
+ 0000041C  C6 05 00000113 R  1		mov popUp[0],0
+	   00
+ 00000423  C6 05 00000114 R  1		mov popUp[1],0
+	   00
+ 0000042A  C6 05 00000115 R  1		mov popUp[2],0
+	   00
+ 00000431  C6 05 00000116 R  1		mov popUp[3],0
+	   00
+ 00000438  C6 05 00000117 R  1		mov popUp[4],0
+	   00
+ 0000043F  C6 05 00000118 R  1		mov popUp[5],0
+	   00
+ 00000446  C6 05 00000119 R  1		mov popUp[6],0
+	   00
+ 0000044D  C6 05 0000011A R  1		mov popUp[7],0
+	   00
+ 00000454  C6 05 0000011B R  1		mov popUp[8],0
+	   00
+ 0000045B  C6 05 0000011C R  1		mov redPopUp[0],0
+	   00
+ 00000462  C6 05 0000011D R  1		mov redPopUp[1],0
+	   00
+ 00000469  C6 05 0000011E R  1		mov redPopUp[2],0
+	   00
+ 00000470  C6 05 0000011F R  1		mov redPopUp[3],0
+	   00
+ 00000477  C6 05 00000120 R  1		mov redPopUp[4],0
+	   00
+ 0000047E  C6 05 00000121 R  1		mov redPopUp[5],0
+	   00
+ 00000485  C6 05 00000122 R  1		mov redPopUp[6],0
+	   00
+ 0000048C  C6 05 00000123 R  1		mov redPopUp[7],0
+	   00
+ 00000493  C6 05 00000124 R  1		mov redPopUp[8],0
+	   00
+ 0000049A
+ 0000049F  2B 05 0000010B R  1		sub eax, popBaseTime  ;將距離上一次更新畫面的時間存入eax
+ 000004A5  A3 00000107 R     1		mov lastUpdatePopTime, eax       ;將距離上一次更新畫面的時間存入edx	
+ 000004C5  A3 0000010B R     1			mov popBaseTime, eax
+ 000004CF  2B 05 0000012A R
+ 000004D5  A3 0000010F R
+ 000004E7  E8 00000000 E
+ 0000084C  BA 000000FF R     1			mov edx, OFFSET scoreString 
+ 00000856  A1 000000FB R     1			mov eax, score
+ 00000860  BA 000000EF R     1			mov edx, OFFSET timeString  
+ 0000086F  2B 05 000000EB R  1			sub eax, gameStartTime
+ 00000875  BA 00000000	     1			mov edx,0
+ 0000087A  F7 35 000000E7 R  1			div divisor
+ 00000880  29 05 000000E3 R  1			sub totalTime, eax
+ 0000088F  EB 20	     1				jmp endGame
+ 00000891  A1 000000E3 R     1			mov eax, totalTime
+ 00000896  C7 05 000000E3 R  1			mov totalTime, 20
+	   00000014
+ 000008AA  A3 0000012A R     1			mov baseTime, eax
+ 000008AF  EB 4B	     1			jmp notEnd
+ 000008B1
+ 000008B1  E8 00000000 E     1		call Clrscr
+ 000008B6  BA 000000BC R     1			mov edx, OFFSET endTitle 
+ 000008C0  A1 000000FB R     1			mov eax, score
+ 000008CF  BA 000000C7 R     1			mov edx, OFFSET endRestart
+ 000008F0  E9 FFFFFAFF	     1				jmp startPrepare
+ 000008F7  E9 0000021D	     1				jmp EX
+ 000008FC
+ 0000090E  C6 05 00000119 R  1				mov popUp[6], 0
+	   00
+ 00000915  FF 05 000000FB R  1				inc score
+ 00000926  C6 05 00000122 R  1				mov redPopUp[6], 0
+	   00
+ 00000936  FF 0D 000000FB R  1					dec score
+ 00000949  C6 05 0000011A R  1				mov popUp[7], 0
+	   00
+ 00000950  FF 05 000000FB R  1				inc score
+ 00000961  C6 05 00000123 R  1				mov redPopUp[7], 0
+	   00
+ 00000971  FF 0D 000000FB R  1					dec score
+ 00000984  C6 05 0000011B R  1				mov popUp[8], 0
+	   00
+ 0000098B  FF 05 000000FB R  1				inc score
+ 0000099C  C6 05 00000124 R  1				mov redPopUp[8], 0
+	   00
+ 000009AC  FF 0D 000000FB R  1					dec score
+ 000009BF  C6 05 00000116 R  1				mov popUp[3], 0
+	   00
+ 000009C6  FF 05 000000FB R  1				inc score
+ 000009D7  C6 05 0000011F R  1				mov redPopUp[3], 0
+	   00
+ 000009E7  FF 0D 000000FB R  1					dec score
+ 000009FA  C6 05 00000117 R  1				mov popUp[4], 0
+	   00
+ 00000A01  FF 05 000000FB R  1				inc score
+ 00000A12  C6 05 00000120 R  1				mov redPopUp[4], 0
+	   00
+ 00000A22  FF 0D 000000FB R  1					dec score
+ 00000A35  C6 05 00000118 R  1				mov popUp[5], 0
+	   00
+ 00000A3C  FF 05 000000FB R  1				inc score
+ 00000A4D  C6 05 00000121 R  1				mov redPopUp[5], 0
+	   00
+ 00000A5D  FF 0D 000000FB R  1					dec score
+ 00000A70  C6 05 00000113 R  1				mov popUp[0], 0
+	   00
+ 00000A77  FF 05 000000FB R  1				inc score
+ 00000A88  C6 05 0000011C R  1				mov redPopUp[0], 0
+	   00
+ 00000A98  FF 0D 000000FB R  1					dec score
+ 00000AAB  C6 05 00000114 R  1				mov popUp[1], 0
+	   00
+ 00000AB2  FF 05 000000FB R  1				inc score
+ 00000AC3  C6 05 0000011D R  1				mov redPopUp[1], 0
+	   00
+ 00000AD3  FF 0D 000000FB R  1					dec score
+ 00000AE6  C6 05 00000115 R  1				mov popUp[2], 0
+	   00
+ 00000AED  FF 05 000000FB R  1				inc score
+ 00000AFE  C6 05 0000011E R  1				mov redPopUp[2], 0
+	   00
+ 00000B0E  FF 0D 000000FB R  1					dec score
+ 00000B14  E9 FFFFF981
+ 00000B19
+ 00000B20
+Microsoft (R) Macro Assembler Version 14.29.30152.0	    01/07/24 18:59:14
+Source.asm						     Symbols 2 - 1
+
+
+
+
+Macros:
+
+                N a m e                 Type
+
+endGameMenu  . . . . . . . . . .	Proc
+handleGameInformation  . . . . .	Proc
+initialize . . . . . . . . . . .	Proc
+menuPage . . . . . . . . . . . .	Proc
+readKeyboard . . . . . . . . . .	Proc
+updateDrawBackground . . . . . .	Proc
+updateDrawRat  . . . . . . . . .	Proc
+updateDrawRedRat . . . . . . . .	Proc
+updateRatArray . . . . . . . . .	Proc
+
+
+Structures and Unions:
+
+                N a m e                  Size
+                                         Offset      Type
+
+CONSOLE_CURSOR_INFO  . . . . . .	 00000008
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  bVisible . . . . . . . . . . .	 00000004	 DWord
+CONSOLE_SCREEN_BUFFER_INFO . . .	 00000016
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  dwCursorPosition . . . . . . .	 00000004	 DWord
+  wAttributes  . . . . . . . . .	 00000008	 Word
+  srWindow . . . . . . . . . . .	 0000000A	 QWord
+  dwMaximumWindowSize  . . . . .	 00000012	 DWord
+COORD  . . . . . . . . . . . . .	 00000004
+  X  . . . . . . . . . . . . . .	 00000000	 Word
+  Y  . . . . . . . . . . . . . .	 00000002	 Word
+FILETIME . . . . . . . . . . . .	 00000008
+  loDateTime . . . . . . . . . .	 00000000	 DWord
+  hiDateTime . . . . . . . . . .	 00000004	 DWord
+FOCUS_EVENT_RECORD . . . . . . .	 00000004
+  bSetFocus  . . . . . . . . . .	 00000000	 DWord
+FPU_ENVIRON  . . . . . . . . . .	 0000001C
+  controlWord  . . . . . . . . .	 00000000	 Word
+  statusWord . . . . . . . . . .	 00000004	 Word
+  tagWord  . . . . . . . . . . .	 00000008	 Word
+  instrPointerOffset . . . . . .	 0000000C	 DWord
+  instrPointerSelector . . . . .	 00000010	 DWord
+  operandPointerOffset . . . . .	 00000014	 DWord
+  operandPointerSelector . . . .	 00000018	 Word
+INPUT_RECORD . . . . . . . . . .	 00000014
+  EventType  . . . . . . . . . .	 00000000	 Word
+  Event  . . . . . . . . . . . .	 00000004	 XmmWord
+  bKeyDown . . . . . . . . . . .	 00000000	 DWord
+  wRepeatCount . . . . . . . . .	 00000004	 Word
+  wVirtualKeyCode  . . . . . . .	 00000006	 Word
+  wVirtualScanCode . . . . . . .	 00000008	 Word
+  uChar  . . . . . . . . . . . .	 0000000A	 Word
+  UnicodeChar  . . . . . . . . .	 00000000	 Word
+  AsciiChar  . . . . . . . . . .	 00000000	 Byte
+  dwControlKeyState  . . . . . .	 0000000C	 DWord
+  dwMousePosition  . . . . . . .	 00000000	 DWord
+  dwButtonState  . . . . . . . .	 00000004	 DWord
+  dwMouseControlKeyState . . . .	 00000008	 DWord
+  dwEventFlags . . . . . . . . .	 0000000C	 DWord
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  dwCommandId  . . . . . . . . .	 00000000	 DWord
+  bSetFocus  . . . . . . . . . .	 00000000	 DWord
+KEY_EVENT_RECORD . . . . . . . .	 00000010
+  bKeyDown . . . . . . . . . . .	 00000000	 DWord
+  wRepeatCount . . . . . . . . .	 00000004	 Word
+  wVirtualKeyCode  . . . . . . .	 00000006	 Word
+  wVirtualScanCode . . . . . . .	 00000008	 Word
+  uChar  . . . . . . . . . . . .	 0000000A	 Word
+  UnicodeChar  . . . . . . . . .	 00000000	 Word
+  AsciiChar  . . . . . . . . . .	 00000000	 Byte
+  dwControlKeyState  . . . . . .	 0000000C	 DWord
+MENU_EVENT_RECORD  . . . . . . .	 00000004
+  dwCommandId  . . . . . . . . .	 00000000	 DWord
+MOUSE_EVENT_RECORD . . . . . . .	 00000010
+  dwMousePosition  . . . . . . .	 00000000	 DWord
+  dwButtonState  . . . . . . . .	 00000004	 DWord
+  dwMouseControlKeyState . . . .	 00000008	 DWord
+  dwEventFlags . . . . . . . . .	 0000000C	 DWord
+SMALL_RECT . . . . . . . . . . .	 00000008
+  Left . . . . . . . . . . . . .	 00000000	 Word
+  Top  . . . . . . . . . . . . .	 00000002	 Word
+  Right  . . . . . . . . . . . .	 00000004	 Word
+  Bottom . . . . . . . . . . . .	 00000006	 Word
+SYSTEMTIME . . . . . . . . . . .	 00000010
+  wYear  . . . . . . . . . . . .	 00000000	 Word
+  wMonth . . . . . . . . . . . .	 00000002	 Word
+  wDayOfWeek . . . . . . . . . .	 00000004	 Word
+  wDay . . . . . . . . . . . . .	 00000006	 Word
+  wHour  . . . . . . . . . . . .	 00000008	 Word
+  wMinute  . . . . . . . . . . .	 0000000A	 Word
+  wSecond  . . . . . . . . . . .	 0000000C	 Word
+  wMilliseconds  . . . . . . . .	 0000000E	 Word
+WINDOW_BUFFER_SIZE_RECORD  . . .	 00000004
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
+_DATA  . . . . . . . . . . . . .	32 Bit	 000002B7 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000B20 Para	  Public  'CODE'	
+
+
+Procedures, parameters, and locals:
+
+                N a m e                 Type     Value    Attr
+
+CloseFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CreateFileA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CreateOutputFile . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Crlf . . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Delay  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DumpMem  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DumpRegs . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FileTimeToDosDateTime  . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FileTimeToSystemTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FlushConsoleInputBuffer  . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FormatMessageA . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetCommandLineA  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetCommandTail . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleCP . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleScreenBufferInfo . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetDateTime  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetFileTime  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetKeyState  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetLastError . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMaxXY . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMseconds  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetNumberOfConsoleInputEvents  .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetProcessHeap . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetStdHandle . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetSystemTime  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetTickCount . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Gotoxy . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapAlloc  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapCreate . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapDestroy  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapFree . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapSize . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+IsDigit  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+LocalFree  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MessageBoxA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MsgBoxAsk  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MsgBox . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+OpenInputFile  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseDecimal32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseInteger32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+PeekConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Random32 . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+RandomRange  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Randomize  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadChar . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadConsoleA . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadDec  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFile . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFloat  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFromFile . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadHex  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadInt  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadKeyFlush . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadKey  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadString . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleCursorPosition . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleScreenBufferSize . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleTextAttribute  . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleTitleA . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleWindowInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetFilePointer . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ShowFPUStack . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Sleep  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+StrLength  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_compare  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_copy . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_length . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_trim . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_ucase  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SystemTimeToFileTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WaitMsg  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteBinB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteBin . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteChar  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleA  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleOutputAttribute  . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleOutputCharacterA . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteDec . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFloat . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteHexB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteHex . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteInt . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteStackFrameName  . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+drawBackGround . . . . . . . . .	P Near	 000002E4 _TEXT	Length= 000000BE Public STDCALL
+  xyPosition . . . . . . . . . .	DWord	 bp + 00000008
+  attributes0  . . . . . . . . .	DWord	 bp + 0000000C
+  attributes1  . . . . . . . . .	DWord	 bp + 00000010
+  attributes2  . . . . . . . . .	DWord	 bp + 00000014
+  L1 . . . . . . . . . . . . . .	L Near	 00000330 _TEXT	
+drawMouse  . . . . . . . . . . .	P Near	 00000285 _TEXT	Length= 0000005F Public STDCALL
+  xyPosition . . . . . . . . . .	DWord	 bp + 00000008
+  attributes0  . . . . . . . . .	DWord	 bp + 0000000C
+  attributes1  . . . . . . . . .	DWord	 bp + 00000010
+  attributes2  . . . . . . . . .	DWord	 bp + 00000014
+  L1 . . . . . . . . . . . . . .	L Near	 00000295 _TEXT	
+main . . . . . . . . . . . . . .	P Near	 000003A2 _TEXT	Length= 0000077E Public STDCALL
+  menu . . . . . . . . . . . . .	L Near	 000003A2 _TEXT	
+  startPrepare . . . . . . . . .	L Near	 000003F4 _TEXT	
+  startGame  . . . . . . . . . .	L Near	 0000049A _TEXT	
+  endGame  . . . . . . . . . . .	L Near	 000008B1 _TEXT	
+  notEnd . . . . . . . . . . . .	L Near	 000008FC _TEXT	
+  EX . . . . . . . . . . . . . .	L Near	 00000B19 _TEXT	
+printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+setPop . . . . . . . . . . . . .	P Near	 0000016B _TEXT	Length= 0000011A Public STDCALL
+setRedPop  . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000016B Public STDCALL
+wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000003h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+ALT_MASK . . . . . . . . . . . .	Number	 00000003h   
+BoxHeight  . . . . . . . . . . .	Number	 00000007h   
+BoxWidth . . . . . . . . . . . .	Number	 00000014h   
+CAPSLOCK_ON  . . . . . . . . . .	Number	 00000080h   
+CREATE_ALWAYS  . . . . . . . . .	Number	 00000002h   
+CREATE_NEW . . . . . . . . . . .	Number	 00000001h   
+CTRL_MASK  . . . . . . . . . . .	Number	 0000000Ch   
+CreateFile . . . . . . . . . . .	Text   	 CreateFileA
+DO_NOT_SHARE . . . . . . . . . .	Number	 00000000h   
+ENABLE_ECHO_INPUT  . . . . . . .	Number	 00000004h   
+ENABLE_LINE_INPUT  . . . . . . .	Number	 00000002h   
+ENABLE_MOUSE_INPUT . . . . . . .	Number	 00000010h   
+ENABLE_PROCESSED_INPUT . . . . .	Number	 00000001h   
+ENABLE_PROCESSED_OUTPUT  . . . .	Number	 00000001h   
+ENABLE_WINDOW_INPUT  . . . . . .	Number	 00000008h   
+ENABLE_WRAP_AT_EOL_OUTPUT  . . .	Number	 00000002h   
+ENHANCED_KEY . . . . . . . . . .	Number	 00000100h   
+FALSE  . . . . . . . . . . . . .	Number	 00000000h   
+FILE_APPEND_DATA . . . . . . . .	Number	 00000004h   
+FILE_ATTRIBUTE_ARCHIVE . . . . .	Number	 00000020h   
+FILE_ATTRIBUTE_COMPRESSED  . . .	Number	 00000800h   
+FILE_ATTRIBUTE_DEVICE  . . . . .	Number	 00000040h   
+FILE_ATTRIBUTE_DIRECTORY . . . .	Number	 00000010h   
+FILE_ATTRIBUTE_ENCRYPTED . . . .	Number	 00004000h   
+FILE_ATTRIBUTE_HIDDEN  . . . . .	Number	 00000002h   
+FILE_ATTRIBUTE_NORMAL  . . . . .	Number	 00000080h   
+FILE_ATTRIBUTE_NOT_CONTENT_INDEXED .	Number	 00002000h   
+FILE_ATTRIBUTE_OFFLINE . . . . .	Number	 00001000h   
+FILE_ATTRIBUTE_READONLY  . . . .	Number	 00000001h   
+FILE_ATTRIBUTE_REPARSE_POINT . .	Number	 00000400h   
+FILE_ATTRIBUTE_SPARSE_FILE . . .	Number	 00000200h   
+FILE_ATTRIBUTE_SYSTEM  . . . . .	Number	 00000004h   
+FILE_ATTRIBUTE_TEMPORARY . . . .	Number	 00000100h   
+FILE_BEGIN . . . . . . . . . . .	Number	 00000000h   
+FILE_CURRENT . . . . . . . . . .	Number	 00000001h   
+FILE_DELETE_CHILD  . . . . . . .	Number	 00000040h   
+FILE_END . . . . . . . . . . . .	Number	 00000002h   
+FILE_READ_DATA . . . . . . . . .	Number	 00000001h   
+FILE_SHARE_DELETE  . . . . . . .	Number	 00000004h   
+FILE_SHARE_READ  . . . . . . . .	Number	 00000001h   
+FILE_SHARE_WRITE . . . . . . . .	Number	 00000002h   
+FILE_WRITE_DATA  . . . . . . . .	Number	 00000002h   
+FOCUS_EVENT  . . . . . . . . . .	Number	 00000010h   
+FORMAT_MESSAGE_ALLOCATE_BUFFER .	Number	 00000100h   
+FORMAT_MESSAGE_FROM_SYSTEM . . .	Number	 00001000h   
+FormatMessage  . . . . . . . . .	Text   	 FormatMessageA
+GENERIC_ALL  . . . . . . . . . .	Number	 10000000h   
+GENERIC_EXECUTE  . . . . . . . .	Number	 20000000h   
+GENERIC_READ . . . . . . . . . .	Number	 -80000000h   
+GENERIC_WRITE  . . . . . . . . .	Number	 40000000h   
+GetCommandLine . . . . . . . . .	Text   	 GetCommandLineA
+HANDLE . . . . . . . . . . . . .	Text   	 DWORD
+HEAP_GENERATE_EXCEPTIONS . . . .	Number	 00000004h   
+HEAP_GROWABLE  . . . . . . . . .	Number	 00000002h   
+HEAP_NO_SERIALIZE  . . . . . . .	Number	 00000001h   
+HEAP_REALLOC_IN_PLACE_ONLY . . .	Number	 00000010h   
+HEAP_ZERO_MEMORY . . . . . . . .	Number	 00000008h   
+IDABORT  . . . . . . . . . . . .	Number	 00000003h   
+IDCANCEL . . . . . . . . . . . .	Number	 00000002h   
+IDCLOSE  . . . . . . . . . . . .	Number	 00000008h   
+IDCONTINUE . . . . . . . . . . .	Number	 0000000Bh   
+IDHELP . . . . . . . . . . . . .	Number	 00000009h   
+IDIGNORE . . . . . . . . . . . .	Number	 00000005h   
+IDNO . . . . . . . . . . . . . .	Number	 00000007h   
+IDOK . . . . . . . . . . . . . .	Number	 00000001h   
+IDRETRY  . . . . . . . . . . . .	Number	 00000004h   
+IDTIMEOUT  . . . . . . . . . . .	Number	 00007D00h   
+IDTRYAGAIN . . . . . . . . . . .	Number	 0000000Ah   
+IDYES  . . . . . . . . . . . . .	Number	 00000006h   
+INVALID_HANDLE_VALUE . . . . . .	Number	 -00000001h   
+KBDOWN_FLAG  . . . . . . . . . .	Number	 00000001h   
+KEY_EVENT  . . . . . . . . . . .	Number	 00000001h   
+KEY_MASKS  . . . . . . . . . . .	Number	 0000001Fh   
+LEFT_ALT_PRESSED . . . . . . . .	Number	 00000002h   
+LEFT_CTRL_PRESSED  . . . . . . .	Number	 00000008h   
+MB_ABORTRETRYIGNORE  . . . . . .	Number	 00000002h   
+MB_APPLMODAL . . . . . . . . . .	Number	 00000000h   
+MB_CANCELTRYCONTINUE . . . . . .	Number	 00000006h   
+MB_DEFBUTTON1  . . . . . . . . .	Number	 00000000h   
+MB_DEFBUTTON2  . . . . . . . . .	Number	 00000100h   
+MB_DEFBUTTON3  . . . . . . . . .	Number	 00000200h   
+MB_DEFBUTTON4  . . . . . . . . .	Number	 00000300h   
+MB_HELP  . . . . . . . . . . . .	Number	 00004000h   
+MB_ICONASTERISK  . . . . . . . .	Number	 00000040h   
+MB_ICONERROR . . . . . . . . . .	Number	 00000010h   
+MB_ICONEXCLAMATION . . . . . . .	Number	 00000030h   
+MB_ICONHAND  . . . . . . . . . .	Number	 00000010h   
+MB_ICONINFORMATION . . . . . . .	Number	 00000040h   
+MB_ICONQUESTION  . . . . . . . .	Number	 00000020h   
+MB_ICONSTOP  . . . . . . . . . .	Number	 00000010h   
+MB_ICONWARNING . . . . . . . . .	Number	 00000030h   
+MB_OKCANCEL  . . . . . . . . . .	Number	 00000001h   
+MB_OK  . . . . . . . . . . . . .	Number	 00000000h   
+MB_RETRYCANCEL . . . . . . . . .	Number	 00000005h   
+MB_SYSTEMMODAL . . . . . . . . .	Number	 00001000h   
+MB_TASKMODAL . . . . . . . . . .	Number	 00002000h   
+MB_USERICON  . . . . . . . . . .	Number	 00000080h   
+MB_YESNOCANCEL . . . . . . . . .	Number	 00000003h   
+MB_YESNO . . . . . . . . . . . .	Number	 00000004h   
+MENU_EVENT . . . . . . . . . . .	Number	 00000008h   
+MOUSE_EVENT  . . . . . . . . . .	Number	 00000002h   
+MessageBox . . . . . . . . . . .	Text   	 MessageBoxA
+NULL . . . . . . . . . . . . . .	Number	 00000000h   
+NUMLOCK_ON . . . . . . . . . . .	Number	 00000020h   
+OPEN_ALWAYS  . . . . . . . . . .	Number	 00000004h   
+OPEN_EXISTING  . . . . . . . . .	Number	 00000003h   
+PeekConsoleInput . . . . . . . .	Text   	 PeekConsoleInputA
+RIGHT_ALT_PRESSED  . . . . . . .	Number	 00000001h   
+RIGHT_CTRL_PRESSED . . . . . . .	Number	 00000004h   
+ReadConsoleInput . . . . . . . .	Text   	 ReadConsoleInputA
+ReadConsole  . . . . . . . . . .	Text   	 ReadConsoleA
+SCROLLLOCK_ON  . . . . . . . . .	Number	 00000040h   
+SHIFT_MASK . . . . . . . . . . .	Number	 00000010h   
+SHIFT_PRESSED  . . . . . . . . .	Number	 00000010h   
+STD_ERROR_HANDLE . . . . . . . .	Number	 -0000000Ch   
+STD_INPUT_HANDLE . . . . . . . .	Number	 -0000000Ah   
+STD_OUTPUT_HANDLE  . . . . . . .	Number	 -0000000Bh   
+SetConsoleTitle  . . . . . . . .	Text   	 SetConsoleTitleA
+TAB  . . . . . . . . . . . . . .	Number	 00000009h   
+TRUE . . . . . . . . . . . . . .	Number	 00000001h   
+TRUNCATE_EXISTING  . . . . . . .	Number	 00000005h   
+VK_11  . . . . . . . . . . . . .	Number	 000000BDh   
+VK_12  . . . . . . . . . . . . .	Number	 000000BBh   
+VK_ADD . . . . . . . . . . . . .	Number	 0000006Bh   
+VK_BACK  . . . . . . . . . . . .	Number	 00000008h   
+VK_CANCEL  . . . . . . . . . . .	Number	 00000003h   
+VK_CAPITAL . . . . . . . . . . .	Number	 00000014h   
+VK_CLEAR . . . . . . . . . . . .	Number	 0000000Ch   
+VK_CONTROL . . . . . . . . . . .	Number	 00000011h   
+VK_DECIMAL . . . . . . . . . . .	Number	 0000006Eh   
+VK_DELETE  . . . . . . . . . . .	Number	 0000002Eh   
+VK_DIVIDE  . . . . . . . . . . .	Number	 0000006Fh   
+VK_DOWN  . . . . . . . . . . . .	Number	 00000028h   
+VK_END . . . . . . . . . . . . .	Number	 00000023h   
+VK_ESCAPE  . . . . . . . . . . .	Number	 0000001Bh   
+VK_EXECUTE . . . . . . . . . . .	Number	 0000002Bh   
+VK_F10 . . . . . . . . . . . . .	Number	 00000079h   
+VK_F11 . . . . . . . . . . . . .	Number	 0000007Ah   
+VK_F12 . . . . . . . . . . . . .	Number	 0000007Bh   
+VK_F13 . . . . . . . . . . . . .	Number	 0000007Ch   
+VK_F14 . . . . . . . . . . . . .	Number	 0000007Dh   
+VK_F15 . . . . . . . . . . . . .	Number	 0000007Eh   
+VK_F16 . . . . . . . . . . . . .	Number	 0000007Fh   
+VK_F17 . . . . . . . . . . . . .	Number	 00000080h   
+VK_F18 . . . . . . . . . . . . .	Number	 00000081h   
+VK_F19 . . . . . . . . . . . . .	Number	 00000082h   
+VK_F1  . . . . . . . . . . . . .	Number	 00000070h   
+VK_F20 . . . . . . . . . . . . .	Number	 00000083h   
+VK_F21 . . . . . . . . . . . . .	Number	 00000084h   
+VK_F22 . . . . . . . . . . . . .	Number	 00000085h   
+VK_F23 . . . . . . . . . . . . .	Number	 00000086h   
+VK_F24 . . . . . . . . . . . . .	Number	 00000087h   
+VK_F2  . . . . . . . . . . . . .	Number	 00000071h   
+VK_F3  . . . . . . . . . . . . .	Number	 00000072h   
+VK_F4  . . . . . . . . . . . . .	Number	 00000073h   
+VK_F5  . . . . . . . . . . . . .	Number	 00000074h   
+VK_F6  . . . . . . . . . . . . .	Number	 00000075h   
+VK_F7  . . . . . . . . . . . . .	Number	 00000076h   
+VK_F8  . . . . . . . . . . . . .	Number	 00000077h   
+VK_F9  . . . . . . . . . . . . .	Number	 00000078h   
+VK_HELP  . . . . . . . . . . . .	Number	 0000002Fh   
+VK_HOME  . . . . . . . . . . . .	Number	 00000024h   
+VK_INSERT  . . . . . . . . . . .	Number	 0000002Dh   
+VK_LBUTTON . . . . . . . . . . .	Number	 00000001h   
+VK_LCONTROL  . . . . . . . . . .	Number	 000000A2h   
+VK_LEFT  . . . . . . . . . . . .	Number	 00000025h   
+VK_LMENU . . . . . . . . . . . .	Number	 000000A4h   
+VK_LSHIFT  . . . . . . . . . . .	Number	 000000A0h   
+VK_MENU  . . . . . . . . . . . .	Number	 00000012h   
+VK_MULTIPLY  . . . . . . . . . .	Number	 0000006Ah   
+VK_NEXT  . . . . . . . . . . . .	Number	 00000022h   
+VK_NUMLOCK . . . . . . . . . . .	Number	 00000090h   
+VK_NUMPAD0 . . . . . . . . . . .	Number	 00000060h   
+VK_NUMPAD1 . . . . . . . . . . .	Number	 00000061h   
+VK_NUMPAD2 . . . . . . . . . . .	Number	 00000062h   
+VK_NUMPAD3 . . . . . . . . . . .	Number	 00000063h   
+VK_NUMPAD4 . . . . . . . . . . .	Number	 00000064h   
+VK_NUMPAD5 . . . . . . . . . . .	Number	 00000065h   
+VK_NUMPAD6 . . . . . . . . . . .	Number	 00000066h   
+VK_NUMPAD7 . . . . . . . . . . .	Number	 00000067h   
+VK_NUMPAD8 . . . . . . . . . . .	Number	 00000068h   
+VK_NUMPAD9 . . . . . . . . . . .	Number	 00000069h   
+VK_PAUSE . . . . . . . . . . . .	Number	 00000013h   
+VK_PRINT . . . . . . . . . . . .	Number	 0000002Ah   
+VK_PRIOR . . . . . . . . . . . .	Number	 00000021h   
+VK_RBUTTON . . . . . . . . . . .	Number	 00000002h   
+VK_RCONTROL  . . . . . . . . . .	Number	 000000A3h   
+VK_RETURN  . . . . . . . . . . .	Number	 0000000Dh   
+VK_RIGHT . . . . . . . . . . . .	Number	 00000027h   
+VK_RMENU . . . . . . . . . . . .	Number	 000000A5h   
+VK_RSHIFT  . . . . . . . . . . .	Number	 000000A1h   
+VK_SCROLL  . . . . . . . . . . .	Number	 00000091h   
+VK_SEPARATER . . . . . . . . . .	Number	 0000006Ch   
+VK_SHIFT . . . . . . . . . . . .	Number	 00000010h   
+VK_SNAPSHOT  . . . . . . . . . .	Number	 0000002Ch   
+VK_SPACE . . . . . . . . . . . .	Number	 00000020h   
+VK_SUBTRACT  . . . . . . . . . .	Number	 0000006Dh   
+VK_TAB . . . . . . . . . . . . .	Number	 00000009h   
+VK_UP  . . . . . . . . . . . . .	Number	 00000026h   
+WINDOW_BUFFER_SIZE_EVENT . . . .	Number	 00000004h   
+WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
+WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
+attributesHit0 . . . . . . . . .	Word	 0000023F _DATA	
+attributesHit1 . . . . . . . . .	Word	 00000267 _DATA	
+attributesHit2 . . . . . . . . .	Word	 0000028F _DATA	
+attributesNotHit0  . . . . . . .	Word	 000001C7 _DATA	
+attributesNotHit1  . . . . . . .	Word	 000001EF _DATA	
+attributesNotHit2  . . . . . . .	Word	 00000217 _DATA	
+baseTime . . . . . . . . . . . .	DWord	 0000012A _DATA	
+black  . . . . . . . . . . . . .	Number	 00000000h   
+blue . . . . . . . . . . . . . .	Number	 00000001h   
+boxBody  . . . . . . . . . . . .	Byte	 00000146 _DATA	
+boxBottom  . . . . . . . . . . .	Byte	 0000015A _DATA	
+boxTop . . . . . . . . . . . . .	Byte	 00000132 _DATA	
+brown  . . . . . . . . . . . . .	Number	 00000006h   
+bytesWritten . . . . . . . . . .	DWord	 00000173 _DATA	
+cellsWritten . . . . . . . . . .	DWord	 000001C3 _DATA	
+counter  . . . . . . . . . . . .	Byte	 00000125 _DATA	
+count  . . . . . . . . . . . . .	DWord	 00000177 _DATA	
+currentTime  . . . . . . . . . .	DWord	 0000012E _DATA	
+cyan . . . . . . . . . . . . . .	Number	 00000003h   
+divisor  . . . . . . . . . . . .	DWord	 000000E7 _DATA	
+endRestart . . . . . . . . . . .	Byte	 000000C7 _DATA	
+endTitle . . . . . . . . . . . .	Byte	 000000BC _DATA	
+exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
+fileHandle . . . . . . . . . . .	DWord	 0000001D _DATA	
+fileName . . . . . . . . . . . .	Byte	 00000013 _DATA	
+fps  . . . . . . . . . . . . . .	Byte	 0000016E _DATA	
+gameStartTime  . . . . . . . . .	DWord	 000000EB _DATA	
+gray . . . . . . . . . . . . . .	Number	 00000008h   
+green  . . . . . . . . . . . . .	Number	 00000002h   
+highestScoreString . . . . . . .	Byte	 00000000 _DATA	
+highestScore . . . . . . . . . .	DWord	 0000000F _DATA	
+keyBuffer  . . . . . . . . . . .	Byte	 00000129 _DATA	
+lastUpdateDrawTime . . . . . . .	DWord	 0000010F _DATA	
+lastUpdatePopTime  . . . . . . .	DWord	 00000107 _DATA	
+lightBlue  . . . . . . . . . . .	Number	 00000009h   
+lightCyan  . . . . . . . . . . .	Number	 0000000Bh   
+lightGray  . . . . . . . . . . .	Number	 00000007h   
+lightGreen . . . . . . . . . . .	Number	 0000000Ah   
+lightMagenta . . . . . . . . . .	Number	 0000000Dh   
+lightRed . . . . . . . . . . . .	Number	 0000000Ch   
+magenta  . . . . . . . . . . . .	Number	 00000005h   
+menuStartMessage . . . . . . . .	Byte	 000000B4 _DATA	
+menuTitle  . . . . . . . . . . .	Byte	 00000025 _DATA	
+menuTurtorialTitle . . . . . . .	Byte	 00000032 _DATA	
+menuTutorialGraph  . . . . . . .	Byte	 0000004A _DATA	
+mouseHeight  . . . . . . . . . .	Number	 00000004h   
+mousePicture . . . . . . . . . .	Byte	 00000126 _DATA	
+mousePosition  . . . . . . . . .	COORD	 0000017B _DATA	
+mouseWidth . . . . . . . . . . .	Number	 00000003h   
+outputHandle . . . . . . . . . .	DWord	 0000016F _DATA	
+popBaseTime  . . . . . . . . . .	DWord	 0000010B _DATA	
+popUp  . . . . . . . . . . . . .	Byte	 00000113 _DATA	
+position . . . . . . . . . . . .	COORD	 0000019F _DATA	
+redPopProbability  . . . . . . .	DWord	 00000021 _DATA	
+redPopUp . . . . . . . . . . . .	Byte	 0000011C _DATA	
+red  . . . . . . . . . . . . . .	Number	 00000004h   
+scoreString  . . . . . . . . . .	Byte	 000000FF _DATA	
+score  . . . . . . . . . . . . .	DWord	 000000FB _DATA	
+timeString . . . . . . . . . . .	Byte	 000000EF _DATA	
+totalTime  . . . . . . . . . . .	DWord	 000000E3 _DATA	
+white  . . . . . . . . . . . . .	Number	 0000000Fh   
+wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
+yellow . . . . . . . . . . . . .	Number	 0000000Eh   
+
+	   2 Warnings
+	   0 Errors
